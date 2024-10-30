@@ -1,100 +1,58 @@
-from math import *
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
-
-#DEF Constante Gravitacional
-G = -6.673884e-11
-
-#DEF funcion segunda derivada de r en funcion de t
- #Funcion que encuentra la velocidad final de cada cuerpo en tf, x es un
- #vector que tiene en sus components todas las posiciones de los
- # diferentes objetos, v las velocidades iniciales respectivas a cada
- # objeto, m las masas y n la cantidad de objetos
-def fv1(G, x, m, n): 
-    vec = np.zeros(3)
-    dxi = [vec]*n
-    Rmin = 5e7 #radio minimo, si la posicion en la que se encuentra la masa es menor, la velocidad no se vera afectada
-
-    for i in range(0, n):
-        for j in range(0,n):
-            if i!=j :
-                rij = sqrt(np.dot(x[i]-x[j], x[i]-x[j]))
-                if rij > Rmin :
-                    dxi[i] = dxi[i] + G*m[j]*(x[i]-x[j])/pow(rij, 3)
-                else:
-                    dxi[i] = dxi[i]
-    return dxi
-
-#DEF funcion derivada de la posicion respecto del tiempo, devuelve la posicion del cuerpo
-def fx(v):
-    return v
-
-#DEF funcion para encontrar los k1, k2, k3 y k4 para el metodo runge-kutta
-#Funcion que me realiza las operaciones del metodo
- #runge-kutta, ya que las entradas son listas y no
- #puedo manipularlas diectamente
-def operacion(kix, kiv, xio, vio, n, var, h):
-    vec = np.zeros(3)
-    xip = [vec]*n
-    vip = [vec]*n
-    kipx = [vec]*n
-    kipv = [vec]*n
-
-    for i in range(0, n):
-        kipx[i] = h*kix[i]
-        kipv[i] = h*kiv[i]
-        if var == 1 :
-            xip[i] = xio[i] + kipx[i]/2       #Para hallar k2 y k3
-            vip[i] = vio[i] + kipv[i]/2
-        else :
-            xip[i] = xio[i] + kipx[i]          #Para hallar k4
-            vip[i] = vio[i] + kipv[i]
-    return xip, vip, kipx, kipv
-
-#DEF funcion para hallar los nuevos valores de velocidad y posicion finales
-# en el metodo runge-kutta
-
-def operacion2(k1, k2, k3, k4, xio2, n):
-    vec = np.zeros(3)
-    xip2 = [vec]*n
-
-    for i in range(0, n):
-        xip2[i] = xio2[i] + (k1[i]+2*(k2[i]+k3[i])+k4[i])/6
+def derivs(x, y):
+    # Ejemplo de derivada: dy/dx = -y (decay exponencial)
+    return -y
+def RKkc(y, dy, x, h):
+    # Definir los parámetros constantes
+    a2, a3, a4, a5, a6 = 0.2, 0.3, 0.6, 1.0, 0.875
+    b21, b31, b32 = 0.2, 3/40, 9/40
+    b41, b42, b43 = 0.3, -0.9, 1.2
+    b51, b52, b53, b54 = -11/54, 2.5, -70/27, 35/27
+    b61, b62, b63, b64, b65 = 1631/55296, 175/512, 575/13824, 44275/110592, 253/4096
+    c1, c3, c4, c6 = 37/378, 250/621, 125/594, 512/1771
+    dc1, dc3, dc4, dc5, dc6 = c1 - 2825/27648, c3 - 18575/48384, c4 - 13525/55296, -277/14336, c6 - 0.25
     
-    return xip2
-
-#DEF metodo Runge-Kutta
-
-def Runge_Kutta4(xi, vi, tf, ti, m, n):
-    #xi, vi vectores con todas las posiciones y velocidades iniciales de los cuerpos
-    var = 1     #Variable utilizada en la funcion operacion, para definir la
-                #actualizacion para los casos de k2 y k3
+    # Realizar los cálculos para cada paso de k
+    ytemp = y + b21 * h * dy
+    k2 = derivs(x + a2 * h, ytemp)
     
-    dt = tf - ti
+    ytemp = y + h * (b31 * dy + b32 * k2)
+    k3 = derivs(x + a3 * h, ytemp)
     
-    k1x = fx(vi)
-    k1v = fv1(G, xi, m, n)
-
-    xiv, viv, k1x, k1v = operacion(k1x, k1v, xi, vi, n , var, dt)
-    k2x = fx(viv)
-    k2v = fv1(G , xiv, m, n)
-
-    xiv, viv, k2x, k2v = operacion(k2x, k2v, xi, vi, n, var, dt)
-    k3x = fx(viv)
-    k3v = fv1(G, xiv, m, n)
-
-    var = 0
-    xiv, viv, k3x, k3v = operacion(k3x, k3v, xi, vi, n, var, dt)
-    k4x = fx(viv, )
-    k4v = fv1(G, xiv, m, n)
-
-    xiv, viv, k4x, k4v = operacion(k4x, k4v, xi, vi, n, var, dt)
-
-    xiv = operacion2(k1x, k2x, k3x, k4x, xi, n)
-    xf = xiv
-
-    viv = operacion2(k1v, k2v, k3v, k4v, vi, n)
-    vf = viv
-
-    return xf, vf
+    ytemp = y + h * (b41 * dy + b42 * k2 + b43 * k3)
+    k4 = derivs(x + a4 * h, ytemp)
+    
+    ytemp = y + h * (b51 * dy + b52 * k2 + b53 * k3 + b54 * k4)
+    k5 = derivs(x + a5 * h, ytemp)
+    
+    ytemp = y + h * (b61 * dy + b62 * k2 + b63 * k3 + b64 * k4 + b65 * k5)
+    k6 = derivs(x + a6 * h, ytemp)
+    
+    # Calcular yout y yerr
+    yout = y + h * (c1 * dy + c3 * k3 + c4 * k4 + c6 * k6)
+    yerr = h * (dc1 * dy + dc3 * k3 + dc4 * k4 + dc5 * k5 + dc6 * k6)
+    
+    return yout, yerr
+def Adapt(x, y, dy, htry, yscal, eps):
+    safety, econ = 0.9, 1.89e-4
+    h = htry
+    
+    while True:
+        ytemp, yerr = RKkc(y, dy, x, h)
+        emax = max(abs(yerr / (yscal * eps)))
+        
+        if emax <= 1:
+            break
+        htemp = safety * h * emax**-0.25
+        h = max(abs(htemp), 0.25 * abs(h))
+        xnew = x + h
+        
+        if xnew == x:
+            raise RuntimeError("Error: Paso demasiado pequeño en Adapt")
+    
+    if emax > econ:
+        hnxt = safety * emax**-0.2 * h
+    else:
+        hnxt = 4.0 * h
+    
+    return x + h, ytemp, hnxt

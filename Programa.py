@@ -1,106 +1,69 @@
-from Funciones import fv1, fx, operacion, operacion2, Runge_Kutta4
 import numpy as np
 import matplotlib.pyplot as plt
-from vpython import sphere, color, curve, vector, rate
 
-#DEF Constante Gravitacional
-G = -6.673884e-11
-
-numerocuerpos = 3
-ni = 1      #numero de interacciones
-
-Ttot = 3600.    
-dt = Ttot/ni    #cantidad de tiempo en que se actualizara el sistema
-ti = 0          
-es = 30         #Valor de la escala
-ca = np.pi/180  #Conversion de angulo a radianes
-
-#Inicializacion de listas necesarias para el sistema, el numero de componentes de la lista la define nc
-xic = [0] * numerocuerpos    #Lista de la posicion inicial
-xfc = [0] * numerocuerpos    #Lista de la posicion final
-vic = [0] * numerocuerpos    #Lista de la velocidad inicial
-vfc = [0] * numerocuerpos    #Lista de la velocidad final
-
-#Condiciones iniciales, incializacion de masas 
-#CASO 1: todas las masas iguales
-
-mc = [5.97e24, 10e30, 2.16e18]
-
-#incializacion de las posiciones iniciales y finales
-#A cada componente de la lista xic y vic se inicializa con el np.array posicion inicial y velocidad
-#inicial respectivamente para evitar problemas la posicion final se iguala a la posicion inicial antes
-#de comenzar el programa
-
-#Cuerpo 1
-vic[0]=np.array([np.sin(np.pi), np.cos(np.pi), 0])
-xic[0]=np.array([0., 0., 0.])
-xfc[0]=xic[0]
-
-#Cuerpo 2
-vp=30.288e3-1000
-pp=147.10e9+3.84e8
-a=282.94 * ca
-i=0.00 * ca
-vic[1]=np.array([-vp*np.sin(a), vp*np.cos(a), 0])
-xic[1]=np.array([pp*np.cos(a)*np.cos(i), pp*np.sin(a)*np.cos(i), pp*np.sin(i)])
-xfc[1]=xic[1]
-
-#Cuerpo 3
-vp=30.288e3
-pp=147.10e9
-a = 282.94 * ca
-i = 0.00 * ca
-vic[2]=np.array([-vp*np.sin(a), vp*np.cos(a), 0])
-xic[2]=np.array([pp*np.cos(a)*np.cos(i), pp*np.sin(a)*np.cos(i), pp*np.sin(i)])
-xfc[2]=xic[2]
-
-# Suponiendo que xic y xfc sean listas con tres componentes para cada cuerpo
-# Ejemplo: xic[0] = [x, y, z]
-cuerpo1 = sphere(pos=vector(xic[0][0], xic[0][1], xic[0][2]), radius=5e9, color=color.yellow)
-cuerpo1.trail = curve(color=cuerpo1.color)
-
-cuerpo2 = sphere(pos=vector(xic[1][0], xic[1][1], xic[1][2]), radius=5e9, color=color.blue)
-cuerpo2.trail = curve(color=cuerpo2.color)
-
-cuerpo3 = sphere(pos=vector(xic[2][0], xic[2][1], xic[2][2]), radius=5e9, color=color.orange)
-cuerpo3.trail = curve(color=cuerpo3.color)
+# Función de fuerza gravitatoria
+def fuerzaGravitatoria(m1, m2, m3, pos1, pos2, pos3):
+    G = 6.67e-11
+    f_Grav1 = -G * m1 * ((m2 * (pos2 - pos1) / np.linalg.norm(pos2 - pos1)**3) + (m3 * (pos3 - pos1) / np.linalg.norm(pos3 - pos1)**3))
+    f_Grav2 = -G * m2 * ((m1 * (pos1 - pos2) / np.linalg.norm(pos1 - pos2)**3) + (m3 * (pos3 - pos2) / np.linalg.norm(pos3 - pos2)**3))
+    f_Grav3 = -G * m3 * ((m1 * (pos1 - pos3) / np.linalg.norm(pos1 - pos3)**3) + (m2 * (pos2 - pos3) / np.linalg.norm(pos2 - pos3)**3))
+    return f_Grav1, f_Grav2, f_Grav3
 
 
-#Bucle para calcular la posicion de los cuerpos
-n=0
-while True:
-    rate(1e8)
-    n=n+1                   
-    tf=ti+dt
-
-    #Llama la funcion Ruge-Kutta para hallar los valores finales de posicion y velociadad                        
-    xfc,vfc=Runge_Kutta4(xic, vic, tf, ti, mc, numerocuerpos)
-
-    # Actualización de la nueva posición de los cuerpos
-    cuerpo1.pos = vector(xfc[0][0], xfc[0][1], xfc[0][2])
-    cuerpo1.trail.append(cuerpo1.pos)
-
-    cuerpo2.pos = vector(xfc[1][0], xfc[1][1], xfc[1][2])
-    cuerpo2.trail.append(cuerpo2.pos)
-
-    cuerpo3.pos = vector(xfc[2][0], xfc[2][1], xfc[2][2])
-    cuerpo3.trail.append(cuerpo3.pos)
-
-    #Se actualizan los valores iniciales de velocidad, posicion y tiempo                       
-    vic=vfc
-    xic=xfc
-    ti=tf
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+def derivs(x, y):
+    # Ejemplo de derivada: dy/dx = -y (decay exponencial)
+    return -y
+def RKkc(y, dy, x, h):
+    # Definir los parámetros constantes
+    a2, a3, a4, a5, a6 = 0.2, 0.3, 0.6, 1.0, 0.875
+    b21, b31, b32 = 0.2, 3/40, 9/40
+    b41, b42, b43 = 0.3, -0.9, 1.2
+    b51, b52, b53, b54 = -11/54, 2.5, -70/27, 35/27
+    b61, b62, b63, b64, b65 = 1631/55296, 175/512, 575/13824, 44275/110592, 253/4096
+    c1, c3, c4, c6 = 37/378, 250/621, 125/594, 512/1771
+    dc1, dc3, dc4, dc5, dc6 = c1 - 2825/27648, c3 - 18575/48384, c4 - 13525/55296, -277/14336, c6 - 0.25
+    
+    # Realizar los cálculos para cada paso de k
+    ytemp = y + b21 * h * dy
+    k2 = derivs(x + a2 * h, ytemp)
+    
+    ytemp = y + h * (b31 * dy + b32 * k2)
+    k3 = derivs(x + a3 * h, ytemp)
+    
+    ytemp = y + h * (b41 * dy + b42 * k2 + b43 * k3)
+    k4 = derivs(x + a4 * h, ytemp)
+    
+    ytemp = y + h * (b51 * dy + b52 * k2 + b53 * k3 + b54 * k4)
+    k5 = derivs(x + a5 * h, ytemp)
+    
+    ytemp = y + h * (b61 * dy + b62 * k2 + b63 * k3 + b64 * k4 + b65 * k5)
+    k6 = derivs(x + a6 * h, ytemp)
+    
+    # Calcular yout y yerr
+    yout = y + h * (c1 * dy + c3 * k3 + c4 * k4 + c6 * k6)
+    yerr = h * (dc1 * dy + dc3 * k3 + dc4 * k4 + dc5 * k5 + dc6 * k6)
+    
+    return yout, yerr
+def Adapt(x, y, dy, htry, yscal, eps):
+    safety, econ = 0.9, 1.89e-4
+    h = htry
+    
+    while True:
+        ytemp, yerr = RKkc(y, dy, x, h)
+        emax = max(abs(yerr / (yscal * eps)))
+        
+        if emax <= 1:
+            break
+        htemp = safety * h * emax**-0.25
+        h = max(abs(htemp), 0.25 * abs(h))
+        xnew = x + h
+        
+        if xnew == x:
+            raise RuntimeError("Error: Paso demasiado pequeño en Adapt")
+    
+    if emax > econ:
+        hnxt = safety * emax**-0.2 * h
+    else:
+        hnxt = 4.0 * h
+    
+    return x + h, ytemp, hnxt
