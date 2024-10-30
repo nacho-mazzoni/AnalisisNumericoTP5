@@ -51,6 +51,10 @@ def energiaPotencialGrav(m1, m2, m3, posC1, posC2, posC3):
     potGrav3 = -G*m3*((m2/np.linalg.norm(posC2-posC3))+(m1/np.linalg.norm(posC3-posC1)))
     return potGrav1, potGrav2, potGrav3
 
+#defino la funcion de energia acumulativa
+def energiaAcumulativa(eTotal0, eTotalT):
+    return (eTotalT-eTotal0)
+
 
 #CONDICIONES INICIALES: ORBITAS EN FORMA DE 8 DE CHENCINER Y MONTGOMERY
 # Asume masas iguales para los cuerpos
@@ -142,6 +146,7 @@ while t<50:
     
     t += dt
 
+
 # Asegúrate de que las trayectorias son listas de numpy arrays
 trayectoriaCuerpo1 = np.array(trayectoriaCuerpo1)  # Suponiendo que ya tienes las trayectorias calculadas
 trayectoriaCuerpo2 = np.array(trayectoriaCuerpo2)
@@ -170,3 +175,5 @@ plt.legend()
 plt.grid()
 plt.axis('equal')  # Para mantener la proporción de la gráfica
 plt.show()
+
+print("Energia acumulativa del sistema: ", energiaAcumulativa(eTotal[0], eTotal[499]))
