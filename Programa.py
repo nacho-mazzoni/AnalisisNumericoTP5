@@ -77,7 +77,7 @@ def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_i
     estados = np.array(estados)
     return times, estados
 
-# Condiciones iniciales (las mismas que en tu código original)
+# Condiciones iniciales
 m1 = 5e10
 m2 = 6e7
 m3 = 3e1
