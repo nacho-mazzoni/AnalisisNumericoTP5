@@ -163,6 +163,10 @@ i=0
 dt = 0.1
 
 while t < 50:
+    t += dt
+
+    
+
 
 """ 
 trayectoria_cuerpo1 = np.array(trayectoria_cuerpo1)
