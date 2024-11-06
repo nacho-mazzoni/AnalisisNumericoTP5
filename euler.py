@@ -62,6 +62,40 @@ def energiaPotencialGrav(m1, m2, m3, posC1, posC2, posC3):
 def energiaAcumulativa(eTotal0, eTotalT):
     return (eTotalT-eTotal0)
 
+def trapecio(integrand, dt):
+    integral = 0.0
+    for i in range(1, len(integrand)):
+        integral += (integrand[i-1] + integrand[i]) / 2 * dt
+    return integral
+
+def newton_cotes(integrand, dt):
+    n = len(integrand)
+    if n < 3:
+        raise ValueError("Se requieren al menos 3 puntos para aplicar Newton-Cotes.")
+    
+    integral = 0.0
+    for i in range(0, n-2, 2):
+        integral += (integrand[i] + 4*integrand[i+1] + integrand[i+2]) * (dt/3)
+
+    # Si hay un punto adicional, sumarlo
+    if n % 2 == 0:
+        integral += (integrand[-2] + integrand[-1]) * (dt/2)
+
+    return integral
+
+def gauss_quadrature(integrand, dt):
+    # Puntos y pesos para 2 puntos de Gauss
+    puntos = [1/2 - np.sqrt(3)/6, 1/2 + np.sqrt(3)/6]
+    pesos = [1/2, 1/2]
+    
+    integral = 0.0
+    for i in range(len(integrand) - 1):
+        for j in range(2):
+            # Evaluar en los puntos de Gauss
+            x = (integrand[i] + integrand[i + 1]) / 2 + (puntos[j] * (integrand[i + 1] - integrand[i])) / 2
+            integral += pesos[j] * x * dt
+
+    return integral
 
 #CONDICIONES INICIALES
 # masas en kg (Tierra, Luna, Sol)
@@ -77,8 +111,13 @@ posCuerpo3 = np.array([0, 0])                     # Sol
 
 #Velocidades iniciales aproximadas
 v_inicial1 = np.array([0, 29780])
-v_inicial2 = np.array([0, 30802])
+v_inicial2 = np.array([0, -30802])
 v_inicial3 = np.array([0, 0])
+
+#Tiempo inicial, dt y tiempo maximo de iteracion
+t=0 #tiempo inicial
+dt=60 #segundos en un minuto
+t_max = 31536000 #segundos en un año
 
 #inicializar trayectorias
 trayectoriaCuerpo1 = []
@@ -99,9 +138,6 @@ ePotGravitacional2 = []
 ePotGravitacional3 = []
 eTotal = []
 
-t=0 #tiempo inicial
-dt=60 #segundos en un minuto
-t_max = 31536000 #segundos en un año
 
 while t<t_max:
     #calculo de la velocidad en funcion de la fuerza grav
@@ -184,3 +220,4 @@ plt.legend()
 plt.grid()
 plt.axis('equal')  # Para mantener la proporción de la gráfica
 plt.show()
+
