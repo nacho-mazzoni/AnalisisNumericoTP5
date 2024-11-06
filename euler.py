@@ -1,39 +1,41 @@
 import numpy as np
-import math
-from vpython import *
 import matplotlib.pyplot as plt
 
-
-#defino la funcion de fuerza gravitatoria
-def fuerzaGravitatoria(m1, m2 ,m3, pos1, pos2, pos3):
+#defino la funcion aceleracion Fgrav/mi
+def f_aceleracion(m1, m2, m3, pos1, pos2, pos3):
     G = 6.67e-11
-    f_Grav1 = -G*m1*((m2*(pos2-pos1)/(np.linalg.norm(pos2-pos1)**3))+(m3*(pos3-pos1)/(np.linalg.norm(pos3-pos1)**3)))
-    f_Grav2 = -G*m2*((m1*(pos1-pos2)/(np.linalg.norm(pos1-pos2)**3))+(m3*(pos3-pos2)/(np.linalg.norm(pos3-pos2)**3)))
-    f_Grav3 = -G*m3*((m1*(pos1-pos3)/(np.linalg.norm(pos1-pos3)**3))+(m2*(pos2-pos3)/(np.linalg.norm(pos2-pos3)**3)))
-
-    return f_Grav1, f_Grav2, f_Grav3
-
-""" se reciben las masas y la ultima posicion actualizada hasta ese momento t """
+    posiciones = np.array([pos1, pos2, pos3])
+    masas = np.array([m1, m2, m3])
+    aceleraciones = np.zeros_like(posiciones, dtype=np.float64)
+    cuerpos = 3
+    for i in range(cuerpos):
+        for j in range(cuerpos):
+            if j!=i:
+                r = posiciones[j]-posiciones[i]
+                dist = np.linalg.norm(r)
+                if dist>0:
+                    aceleraciones[i] += G*masas[j]*r/(dist**3)
+    return aceleraciones
 
 #defino la funcion velocidad
 """ deberia hacer la integral de t a t+h de la funcion gravitatoria, 
 lo unico que cambiara es la posicion en funcion del tiempo"""
 
 def f_Velocidad(m1, m2, m3, vC1, vC2, vC3, h, pos1, pos2, pos3):
-    f_grav1, f_grav2, f_grav3 = fuerzaGravitatoria(m1, m2, m3, pos1, pos2, pos3)
-    v_1 = vC1 + (h/m1)*f_grav1
-    v_2 = vC2 + (h/m2)*f_grav2
-    v_3 = vC3 + (h/m3)*f_grav3
+    aceleraciones = f_aceleracion(m1, m2, m3, pos1, pos2, pos3)
+    v_1 = vC1 + aceleraciones[0]*h
+    v_2 = vC2 + aceleraciones[1]*h
+    v_3 = vC3 + aceleraciones[2]*h
     return v_1, v_2, v_3
 
 #defino la funcion de posicion 
 """ al igual que con la velocidad, debo hacer la integral de la funcin de t a t+h
 en la funcion de velocidad"""
-def f_posicion(m1, m2, m3, posicionT1, posicionT2, posicionT3, dt, velocidadT1, velocidadT2, velocidadT3, pos1, pos2, pos3):
-    v1, v2, v3 = f_Velocidad(m1, m2, m3, velocidadT1, velocidadT2, velocidadT3, dt, pos1, pos2, pos3)
-    pos1 = posicionT1 + dt*v1
-    pos2 = posicionT2 + dt*v2
-    pos3 = posicionT3 + dt*v3
+def f_posicion(m1, m2, m3, posicionT1, posicionT2, posicionT3, h, velocidadT1, velocidadT2, velocidadT3, pos1, pos2, pos3):
+    v1, v2, v3 = f_Velocidad(m1, m2, m3, velocidadT1, velocidadT2, velocidadT3, h, pos1, pos2, pos3)
+    pos1 = posicionT1 + v1*h 
+    pos2 = posicionT2 + v2*h 
+    pos3 = posicionT3 + v3*h 
     return pos1, pos2, pos3
 
 #defino la funcion de energia cinetica para cada cuerpo
@@ -46,9 +48,14 @@ def energiaCinetica(m1, m2, m3, vC1, vC2, vC3):
 #defino la funcion para la energia potencial entre dos cuerpos
 def energiaPotencialGrav(m1, m2, m3, posC1, posC2, posC3):
     G = 6.67e-11
-    potGrav1 = -G*m1*((m2/np.linalg.norm(posC2-posC1))+(m3/np.linalg.norm(posC3-posC1)))
-    potGrav2 = -G*m2*((m1/np.linalg.norm(posC1-posC2))+(m3/np.linalg.norm(posC3-posC2)))
-    potGrav3 = -G*m3*((m2/np.linalg.norm(posC2-posC3))+(m1/np.linalg.norm(posC3-posC1)))
+    E12 = -G * m1 * m2 / np.linalg.norm(posC2-posC1)
+    E13 = -G * m1 * m3 / np.linalg.norm(posC3-posC1)
+    E23 = -G * m2 * m3 / np.linalg.norm(posC3-posC2)
+
+    potGrav1 = E12 + E13
+    potGrav2 = E12 + E23
+    potGrav3 = E13 + E23
+
     return potGrav1, potGrav2, potGrav3
 
 #defino la funcion de energia acumulativa
@@ -56,21 +63,22 @@ def energiaAcumulativa(eTotal0, eTotalT):
     return (eTotalT-eTotal0)
 
 
-#CONDICIONES INICIALES: ORBITAS EN FORMA DE 8 DE CHENCINER Y MONTGOMERY
-# Asume masas iguales para los cuerpos
+#CONDICIONES INICIALES
+# masas en kg (Tierra, Luna, Sol)
 m1 = 5.97e24
-m2 = 3.30e23
-m3 = 5.28e25
+m2 = 7.348e22
+m3 = 1.98e30  
 
 #Posiciones iniciales aproximadas
-posCuerpo1 = np.array([1.0, 0.0])
-posCuerpo2 = np.array([6.0, 0.0])
-posCuerpo3 = np.array([3.0, 0.0])
+posCuerpo1 = np.array([1.4961e11, 0])   # Tierra
+posCuerpo2 = np.array([7.4805e10, 1.2956e11])  # Luna
+posCuerpo3 = np.array([0, 0])                     # Sol
+
 
 #Velocidades iniciales aproximadas
-v_inicial1 = np.array([0.466, 0.432])
-v_inicial2 = np.array([0.466, 0.432])
-v_inicial3 = np.array([-0.932, -0.864])
+v_inicial1 = np.array([0, 29780])
+v_inicial2 = np.array([0, 30802])
+v_inicial3 = np.array([0, 0])
 
 #inicializar trayectorias
 trayectoriaCuerpo1 = []
@@ -90,10 +98,12 @@ ePotGravitacional1 = []
 ePotGravitacional2 = []
 ePotGravitacional3 = []
 eTotal = []
-t=0
-dt=0.1
 
-while t<50:
+t=0 #tiempo inicial
+dt=60 #segundos en un minuto
+t_max = 31536000 #segundos en un año
+
+while t<t_max:
     #calculo de la velocidad en funcion de la fuerza grav
     v_cuerpo1, v_cuerpo2, v_cuerpo3 = f_Velocidad(m1, m2, m3, v_inicial1, v_inicial2, v_inicial3, dt, posCuerpo1, posCuerpo2, posCuerpo3)
 
@@ -133,18 +143,17 @@ while t<50:
     e_potGravTotal = e_potencial1+e_potencial2+e_potencial3
 
     eTotal.append((e_cineticaTotal+e_potGravTotal))
-
-    # Imprimir los últimos valores
-    print(f"\nIteración actual:")
-    print(f"Energía Cinética - Cuerpo 1: {eCineticaCuerpo1[-1]:.2f}")
-    print(f"Energía Cinética - Cuerpo 2: {eCineticaCuerpo2[-1]:.2f}")
-    print(f"Energía Cinética - Cuerpo 3: {eCineticaCuerpo3[-1]:.2f}")
-    print(f"Energía Potencial - Cuerpo 1: {ePotGravitacional1[-1]:.2f}")
-    print(f"Energía Potencial - Cuerpo 2: {ePotGravitacional2[-1]:.2f}")
-    print(f"Energía Potencial - Cuerpo 3: {ePotGravitacional3[-1]:.2f}")
-    print(f"Energía Total del Sistema: {eTotal[-1]:.2f}")
-    
     t += dt
+
+# Imprimir los últimos valores
+print(f"Energía Cinética - Cuerpo 1: {eCineticaCuerpo1[-1]:.2f}")
+print(f"Energía Cinética - Cuerpo 2: {eCineticaCuerpo2[-1]:.2f}")
+print(f"Energía Cinética - Cuerpo 3: {eCineticaCuerpo3[-1]:.2f}")
+print(f"Energía Potencial - Cuerpo 1: {ePotGravitacional1[-1]:.2f}")
+print(f"Energía Potencial - Cuerpo 2: {ePotGravitacional2[-1]:.2f}")
+print(f"Energía Potencial - Cuerpo 3: {ePotGravitacional3[-1]:.2f}")
+print(f"Energía Total del Sistema: {eTotal[-1]:.2f}")
+print("Energia Acumulada: ", energiaAcumulativa(eTotal[0], eTotal[-1]))
 
 
 # Asegúrate de que las trayectorias son listas de numpy arrays
@@ -154,8 +163,8 @@ trayectoriaCuerpo3 = np.array(trayectoriaCuerpo3)
 
 # Configuración de la gráfica
 plt.figure(figsize=(10, 10))
-plt.xlim(-10, 10)  # Ajusta estos límites según tus necesidades
-plt.ylim(-10, 10)
+plt.xlim(-2e11, 2e11)  # Ajusta estos límites según tus necesidades
+plt.ylim(-2e11, 2e11)
 
 # Graficar trayectorias
 plt.plot(trayectoriaCuerpo1[:, 0], trayectoriaCuerpo1[:, 1], 'b-', label='Cuerpo 1')
@@ -175,5 +184,3 @@ plt.legend()
 plt.grid()
 plt.axis('equal')  # Para mantener la proporción de la gráfica
 plt.show()
-
-print("Energia acumulativa del sistema: ", energiaAcumulativa(eTotal[0], eTotal[499]))
