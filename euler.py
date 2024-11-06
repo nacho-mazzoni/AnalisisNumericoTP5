@@ -48,20 +48,55 @@ def energiaCinetica(m1, m2, m3, vC1, vC2, vC3):
 #defino la funcion para la energia potencial entre dos cuerpos
 def energiaPotencialGrav(m1, m2, m3, posC1, posC2, posC3):
     G = 6.67e-11
-    E12 = -G * m1 * m2 / np.linalg.norm(posC2-posC1)
-    E13 = -G * m1 * m3 / np.linalg.norm(posC3-posC1)
-    E23 = -G * m2 * m3 / np.linalg.norm(posC3-posC2)
-
-    potGrav1 = E12 + E13
-    potGrav2 = E12 + E23
-    potGrav3 = E13 + E23
-
+    # Calcular la distancia entre los cuerpos en función de sus posiciones
+    dist_12 = np.linalg.norm(posC1 - posC2)  # Distancia entre Cuerpo 1 y Cuerpo 2
+    dist_13 = np.linalg.norm(posC1 - posC3)  # Distancia entre Cuerpo 1 y Cuerpo 3
+    dist_23 = np.linalg.norm(posC2 - posC3)  # Distancia entre Cuerpo 2 y Cuerpo 3
+    
+    # Cálculo de la energía potencial entre los cuerpos
+    potGrav1 = -G * m1 * (m2 / dist_12 + m3 / dist_13)
+    potGrav2 = -G * m2 * (m1 / dist_12 + m3 / dist_23)
+    potGrav3 = -G * m3 * (m1 / dist_13 + m2 / dist_23)
     return potGrav1, potGrav2, potGrav3
 
 #defino la funcion de energia acumulativa
 def energiaAcumulativa(eTotal0, eTotalT):
     return (eTotalT-eTotal0)
 
+def trapecio(integrand, dt):
+    integral = 0.0
+    for i in range(1, len(integrand)):
+        integral += (integrand[i-1] + integrand[i]) / 2 * dt
+    return integral
+
+def newton_cotes(integrand, dt):
+    n = len(integrand)
+    if n < 3:
+        raise ValueError("Se requieren al menos 3 puntos para aplicar Newton-Cotes.")
+    
+    integral = 0.0
+    for i in range(0, n-2, 2):
+        integral += (integrand[i] + 4*integrand[i+1] + integrand[i+2]) * (dt/3)
+
+    # Si hay un punto adicional, sumarlo
+    if n % 2 == 0:
+        integral += (integrand[-2] + integrand[-1]) * (dt/2)
+
+    return integral
+
+def gauss_quadrature(integrand, dt):
+    # Puntos y pesos para 2 puntos de Gauss
+    puntos = [1/2 - np.sqrt(3)/6, 1/2 + np.sqrt(3)/6]
+    pesos = [1/2, 1/2]
+    
+    integral = 0.0
+    for i in range(len(integrand) - 1):
+        for j in range(2):
+            # Evaluar en los puntos de Gauss
+            x = (integrand[i] + integrand[i + 1]) / 2 + (puntos[j] * (integrand[i + 1] - integrand[i])) / 2
+            integral += pesos[j] * x * dt
+
+    return integral
 
 #CONDICIONES INICIALES
 # masas en kg (Tierra, Luna, Sol)
@@ -71,7 +106,7 @@ m3 = 1.98e30
 
 #Posiciones iniciales aproximadas
 posCuerpo1 = np.array([1.4961e11, 0])   # Tierra
-posCuerpo2 = np.array([7.4805e10, 1.2956e11])  # Luna
+posCuerpo2 = np.array([1.4961e11*np.cos(np.pi/3), 1.4961e11*np.sin(np.pi/3)])  # Luna
 posCuerpo3 = np.array([0, 0])                     # Sol
 
 
@@ -144,16 +179,11 @@ while t<t_max:
 
     eTotal.append((e_cineticaTotal+e_potGravTotal))
     t += dt
+    
 
-# Imprimir los últimos valores
-print(f"Energía Cinética - Cuerpo 1: {eCineticaCuerpo1[-1]:.2f}")
-print(f"Energía Cinética - Cuerpo 2: {eCineticaCuerpo2[-1]:.2f}")
-print(f"Energía Cinética - Cuerpo 3: {eCineticaCuerpo3[-1]:.2f}")
-print(f"Energía Potencial - Cuerpo 1: {ePotGravitacional1[-1]:.2f}")
-print(f"Energía Potencial - Cuerpo 2: {ePotGravitacional2[-1]:.2f}")
-print(f"Energía Potencial - Cuerpo 3: {ePotGravitacional3[-1]:.2f}")
-print(f"Energía Total del Sistema: {eTotal[-1]:.2f}")
-print("Energia Acumulada: ", energiaAcumulativa(eTotal[0], eTotal[-1]))
+energia_acumulada_trapecio = trapecio(eTotal, dt)
+energia_acumulada_newton_cotes = newton_cotes(eTotal, dt)
+energia_acumulada_gauss = gauss_quadrature(eTotal, dt)
 
 
 # Asegúrate de que las trayectorias son listas de numpy arrays
@@ -163,8 +193,8 @@ trayectoriaCuerpo3 = np.array(trayectoriaCuerpo3)
 
 # Configuración de la gráfica
 plt.figure(figsize=(10, 10))
-plt.xlim(-2e11, 2e11)  # Ajusta estos límites según tus necesidades
-plt.ylim(-2e11, 2e11)
+plt.xlim(-10, 10)  # Ajusta estos límites según tus necesidades
+plt.ylim(-10, 10)
 
 # Graficar trayectorias
 plt.plot(trayectoriaCuerpo1[:, 0], trayectoriaCuerpo1[:, 1], 'b-', label='Cuerpo 1')
@@ -184,3 +214,9 @@ plt.legend()
 plt.grid()
 plt.axis('equal')  # Para mantener la proporción de la gráfica
 plt.show()
+
+print("Energia acumulativa del sistema: ",  sum(eTotal) * dt)
+
+print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
+print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
+print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")
