@@ -78,17 +78,17 @@ def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_i
     return times, estados
 
 # Condiciones iniciales
-m1 = 5e10
-m2 = 6e7
-m3 = 3e1
+m1 = 1.98e30
+m2 = 5.97e24
+m3 = 7645.80
 
 posCuerpo1 = np.array([0, 0])
-posCuerpo2 = np.array([1.5, 6.0])
-posCuerpo3 = np.array([3, 0.0])
+posCuerpo2 = np.array([5.0, 0])
+posCuerpo3 = np.array([2.5,4.33])
 
-v_inicial1 = np.array([0.466, 0.432])
-v_inicial2 = np.array([0.466, 0.432])
-v_inicial3 = np.array([-0.932, -0.864])
+v_inicial1 = np.array([0, 0])
+v_inicial2 = np.array([0, 0])
+v_inicial3 = np.array([0.0, 0.0])
 
 # Simular
 t_final = 50
@@ -101,6 +101,53 @@ trayectoriaCuerpo1 = estados[:, 0:2]
 trayectoriaCuerpo2 = estados[:, 4:6]
 trayectoriaCuerpo3 = estados[:, 8:10]
 
+from matplotlib.animation import FuncAnimation
+
+# Verifica las dimensiones de las trayectorias
+if len(trayectoriaCuerpo1.shape) < 2 or trayectoriaCuerpo1.shape[1] < 2:
+    raise ValueError("TrayectoriaCuerpo1 no tiene las dimensiones correctas.")
+if len(trayectoriaCuerpo2.shape) < 2 or trayectoriaCuerpo2.shape[1] < 2:
+    raise ValueError("TrayectoriaCuerpo2 no tiene las dimensiones correctas.")
+if len(trayectoriaCuerpo3.shape) < 2 or trayectoriaCuerpo3.shape[1] < 2:
+    raise ValueError("TrayectoriaCuerpo3 no tiene las dimensiones correctas.")
+
+# Función para actualizar cada cuadro de la animación
+def actualizar(frame):
+    cuerpo1.set_data([trayectoriaCuerpo1[frame, 0]], [trayectoriaCuerpo1[frame, 1]])
+    cuerpo2.set_data([trayectoriaCuerpo2[frame, 0]], [trayectoriaCuerpo2[frame, 1]])
+    cuerpo3.set_data([trayectoriaCuerpo3[frame, 0]], [trayectoriaCuerpo3[frame, 1]])
+    return cuerpo1, cuerpo2, cuerpo3
+
+# Crear la figura y los ejes
+fig, ax = plt.subplots()
+max_x = max(np.max(trayectoriaCuerpo1[:, 0]), np.max(trayectoriaCuerpo2[:, 0]), np.max(trayectoriaCuerpo3[:, 0]))
+min_x = min(np.min(trayectoriaCuerpo1[:, 0]), np.min(trayectoriaCuerpo2[:, 0]), np.min(trayectoriaCuerpo3[:, 0]))
+max_y = max(np.max(trayectoriaCuerpo1[:, 1]), np.max(trayectoriaCuerpo2[:, 1]), np.max(trayectoriaCuerpo3[:, 1]))
+min_y = min(np.min(trayectoriaCuerpo1[:, 1]), np.min(trayectoriaCuerpo2[:, 1]), np.min(trayectoriaCuerpo3[:, 1]))
+
+ax.set_xlim(min_x, max_x)
+ax.set_ylim(min_y, max_y)
+
+ax.set_aspect('equal')
+ax.set_title('Movimiento de los Tres Cuerpos')
+
+# Inicializar los puntos de los cuerpos
+cuerpo1, = ax.plot([], [], 'ro', label="Cuerpo 1 (m1)")
+cuerpo2, = ax.plot([], [], 'bo', label="Cuerpo 2 (m2)")
+cuerpo3, = ax.plot([], [], 'go', label="Cuerpo 3 (m3)")
+
+# Crear la animación
+frames = len(tiempos)  # Número de cuadros en la animación
+anim = FuncAnimation(fig, actualizar, frames=frames, interval=100, blit=True)
+
+# Mostrar la animación
+plt.legend()
+plt.show()
+
+
+
+
+""" 
 # Graficar
 plt.figure(figsize=(10, 10))
 plt.xlim(-10, 10)
@@ -121,3 +168,4 @@ plt.legend()
 plt.grid()
 plt.axis('equal')
 plt.show()
+"""
