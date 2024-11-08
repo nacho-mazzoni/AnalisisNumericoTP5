@@ -105,8 +105,8 @@ posCuerpo2 = np.array([7.4805e10, 1.2956e11])  # Luna
 posCuerpo3 = np.array([0, 0])                     # Sol
 
 #Velocidades iniciales aproximadas
-v_inicial1 = np.array([0, 0])
-v_inicial2 = np.array([0, 0])
+v_inicial1 = np.array([0, 29780])
+v_inicial2 = np.array([0, -30802])
 v_inicial3 = np.array([0, 0])
 
 #Tiempo inicial, dt y tiempo maximo de iteracion
@@ -164,6 +164,10 @@ anim = FuncAnimation(fig, actualizar, frames=frames, interval=100, blit=True)
 plt.legend()
 plt.show()
 """
+
+
+
+
 # Graficar
 plt.figure(figsize=(10, 10))
 plt.xlim(-2e11, 2e11)  # Ajusta estos límites según tus necesidades
