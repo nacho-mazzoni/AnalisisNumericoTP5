@@ -91,20 +91,21 @@ def gauss_quadrature(integrand, dt):
     return integral
 
 #CONDICIONES INICIALES: ORBITAS EN FORMA DE 8 DE CHENCINER Y MONTGOMERY
-# Asume masas iguales para los cuerpos
+# masas en kg (Tierra, Luna, Sol)
 m1 = 5.97e24
-m2 = 3.30e23
-m3 = 5.28e25
+m2 = 7.348e22
+m3 = 1.98e30  
 
 #Posiciones iniciales aproximadas
-posCuerpo1 = np.array([1.0, 0.0])
-posCuerpo2 = np.array([6.0, 0.0])
-posCuerpo3 = np.array([3.0, 0.0])
+posCuerpo1 = np.array([1.4961e11, 0])   # Tierra
+posCuerpo2 = np.array([7.4805e10, 1.2956e11])  # Luna
+posCuerpo3 = np.array([0, 0])                     # Sol
+
 
 #Velocidades iniciales aproximadas
-v_inicial1 = np.array([0.466, 0.432])
-v_inicial2 = np.array([0.466, 0.432])
-v_inicial3 = np.array([-0.932, -0.864])
+v_inicial1 = np.array([0, 29780])
+v_inicial2 = np.array([0, 30802])
+v_inicial3 = np.array([0, 0])
 
 #inicializar trayectorias
 trayectoriaCuerpo1 = []
