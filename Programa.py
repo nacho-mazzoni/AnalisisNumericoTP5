@@ -76,6 +76,15 @@ def rkf45_paso(estado, t, h, m1, m2, m3):
     
     return new_estado
 
+#arrrglos con energias cineticas y potenciales para cada cuerpo
+eCineticaCuerpo1 = []
+eCineticaCuerpo2 = []
+eCineticaCuerpo3 = []
+ePotGravitacional1 = []
+ePotGravitacional2 = []
+ePotGravitacional3 = []
+eTotal = []
+
 def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_init, v3_init, t_max, dt):
     # Estado inicial
     estado = np.concatenate([pos1_init, v1_init, pos2_init, v2_init, pos3_init, v3_init])
@@ -90,9 +99,78 @@ def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_i
         t += dt
         times.append(t)
         estados.append(estado)
+        e_cinetica1, e_cinetica2, e_cinetica3 = energiaCinetica(m1, m2, m3, estado[1], estado[3], estado[5])
+        eCineticaCuerpo1.append(e_cinetica1)
+        eCineticaCuerpo2.append(e_cinetica2)
+        eCineticaCuerpo3.append(e_cinetica3)
+        e_potencial1, e_potencial2, e_potencial3 = energiaPotencialGrav(m1, m2, m3, estado[0], estado[2], estado[4])
+        ePotGravitacional1.append(e_potencial1)
+        ePotGravitacional2.append(e_potencial2)
+        ePotGravitacional3.append(e_potencial3)
+        eTotal.append(e_cinetica1+e_cinetica2+e_cinetica3+e_potencial1+e_potencial2+e_potencial3)
     
     estados = np.array(estados)
     return times, estados
+
+#defino la funcion de energia cinetica para cada cuerpo
+def energiaCinetica(m1, m2, m3, vC1, vC2, vC3):
+    cinetica1 = 0.5*m1*(np.linalg.norm(vC1)**2)
+    cinetica2 = 0.5*m2*(np.linalg.norm(vC2)**2)
+    cinetica3 = 0.5*m3*(np.linalg.norm(vC3)**2)
+    return cinetica1, cinetica2, cinetica3
+
+#defino la funcion para la energia potencial entre dos cuerpos
+def energiaPotencialGrav(m1, m2, m3, posC1, posC2, posC3):
+    G = 6.67e-11
+    # Calcular la distancia entre los cuerpos en función de sus posiciones
+    dist_12 = np.linalg.norm(posC1 - posC2)  # Distancia entre Cuerpo 1 y Cuerpo 2
+    dist_13 = np.linalg.norm(posC1 - posC3)  # Distancia entre Cuerpo 1 y Cuerpo 3
+    dist_23 = np.linalg.norm(posC2 - posC3)  # Distancia entre Cuerpo 2 y Cuerpo 3
+    
+    # Cálculo de la energía potencial entre los cuerpos
+    potGrav1 = -G * m1 * (m2 / dist_12 + m3 / dist_13)
+    potGrav2 = -G * m2 * (m1 / dist_12 + m3 / dist_23)
+    potGrav3 = -G * m3 * (m1 / dist_13 + m2 / dist_23)
+    return potGrav1, potGrav2, potGrav3
+
+#defino la funcion de energia acumulativa
+def energiaAcumulativa(eTotal0, eTotalT):
+    return (eTotalT-eTotal0)
+
+def trapecio(integrand, dt):
+    integral = 0.0
+    for i in range(1, len(integrand)):
+        integral += (integrand[i-1] + integrand[i]) / 2 * dt
+    return integral
+
+def newton_cotes(integrand, dt):
+    n = len(integrand)
+    if n < 3:
+        raise ValueError("Se requieren al menos 3 puntos para aplicar Newton-Cotes.")
+    
+    integral = 0.0
+    for i in range(0, n-2, 2):
+        integral += (integrand[i] + 4*integrand[i+1] + integrand[i+2]) * (dt/3)
+
+    # Si hay un punto adicional, sumarlo
+    if n % 2 == 0:
+        integral += (integrand[-2] + integrand[-1]) * (dt/2)
+
+    return integral
+
+def gauss_quadrature(integrand, dt):
+    # Puntos y pesos para 2 puntos de Gauss
+    puntos = [1/2 - np.sqrt(3)/6, 1/2 + np.sqrt(3)/6]
+    pesos = [1/2, 1/2]
+    
+    integral = 0.0
+    for i in range(len(integrand) - 1):
+        for j in range(2):
+            # Evaluar en los puntos de Gauss
+            x = (integrand[i] + integrand[i + 1]) / 2 + (puntos[j] * (integrand[i + 1] - integrand[i])) / 2
+            integral += pesos[j] * x * dt
+
+    return integral
 
 # Condiciones iniciales
 m1 = 5.97e24
@@ -120,50 +198,7 @@ tiempos, estados = simular_3_cuerpos(m1, m2, m3, posCuerpo1, posCuerpo2, posCuer
 trayectoriaCuerpo1 = estados[:, 0:2]
 trayectoriaCuerpo2 = estados[:, 4:6]
 trayectoriaCuerpo3 = estados[:, 8:10]
-"""
-from matplotlib.animation import FuncAnimation
 
-# Verifica las dimensiones de las trayectorias
-if len(trayectoriaCuerpo1.shape) < 2 or trayectoriaCuerpo1.shape[1] < 2:
-    raise ValueError("TrayectoriaCuerpo1 no tiene las dimensiones correctas.")
-if len(trayectoriaCuerpo2.shape) < 2 or trayectoriaCuerpo2.shape[1] < 2:
-    raise ValueError("TrayectoriaCuerpo2 no tiene las dimensiones correctas.")
-if len(trayectoriaCuerpo3.shape) < 2 or trayectoriaCuerpo3.shape[1] < 2:
-    raise ValueError("TrayectoriaCuerpo3 no tiene las dimensiones correctas.")
-
-# Función para actualizar cada cuadro de la animación
-def actualizar(frame):
-    cuerpo1.set_data([trayectoriaCuerpo1[frame, 0]], [trayectoriaCuerpo1[frame, 1]])
-    cuerpo2.set_data([trayectoriaCuerpo2[frame, 0]], [trayectoriaCuerpo2[frame, 1]])
-    cuerpo3.set_data([trayectoriaCuerpo3[frame, 0]], [trayectoriaCuerpo3[frame, 1]])
-    return cuerpo1, cuerpo2, cuerpo3
-
-# Crear la figura y los ejes
-fig, ax = plt.subplots()
-max_x = max(np.max(trayectoriaCuerpo1[:, 0]), np.max(trayectoriaCuerpo2[:, 0]), np.max(trayectoriaCuerpo3[:, 0]))
-min_x = min(np.min(trayectoriaCuerpo1[:, 0]), np.min(trayectoriaCuerpo2[:, 0]), np.min(trayectoriaCuerpo3[:, 0]))
-max_y = max(np.max(trayectoriaCuerpo1[:, 1]), np.max(trayectoriaCuerpo2[:, 1]), np.max(trayectoriaCuerpo3[:, 1]))
-min_y = min(np.min(trayectoriaCuerpo1[:, 1]), np.min(trayectoriaCuerpo2[:, 1]), np.min(trayectoriaCuerpo3[:, 1]))
-
-ax.set_xlim(min_x, max_x)
-ax.set_ylim(min_y, max_y)
-
-ax.set_aspect('equal')
-ax.set_title('Movimiento de los Tres Cuerpos')
-
-# Inicializar los puntos de los cuerpos
-cuerpo1, = ax.plot([], [], 'ro', label="Cuerpo 1 (m1)")
-cuerpo2, = ax.plot([], [], 'bo', label="Cuerpo 2 (m2)")
-cuerpo3, = ax.plot([], [], 'go', label="Cuerpo 3 (m3)")
-
-# Crear la animación
-frames = len(tiempos)  # Número de cuadros en la animación
-anim = FuncAnimation(fig, actualizar, frames=frames, interval=100, blit=True)
-
-# Mostrar la animación
-plt.legend()
-plt.show()
-"""
 # Graficar
 plt.figure(figsize=(10, 10))
 plt.xlim(-2e11, 2e11)  # Ajusta estos límites según tus necesidades
@@ -184,3 +219,17 @@ plt.legend()
 plt.grid()
 plt.axis('equal')
 plt.show()
+
+energia_acumulada_trapecio = trapecio(eTotal, dt)
+energia_acumulada_newton_cotes = newton_cotes(eTotal, dt)
+energia_acumulada_gauss = gauss_quadrature(eTotal, dt)
+
+energia_acumulada_trapecio = trapecio(eTotal, dt)
+energia_acumulada_newton_cotes = newton_cotes(eTotal, dt)
+energia_acumulada_gauss = gauss_quadrature(eTotal, dt)
+
+print("Energia acumulativa del sistema: ",  sum(eTotal) * dt)
+
+print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
+print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
+print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")
