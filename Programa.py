@@ -164,10 +164,6 @@ anim = FuncAnimation(fig, actualizar, frames=frames, interval=100, blit=True)
 plt.legend()
 plt.show()
 """
-
-
-
-
 # Graficar
 plt.figure(figsize=(10, 10))
 plt.xlim(-2e11, 2e11)  # Ajusta estos límites según tus necesidades
