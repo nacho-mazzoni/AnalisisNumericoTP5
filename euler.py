@@ -108,7 +108,6 @@ posCuerpo1 = np.array([1.4961e11, 0])   # Tierra
 posCuerpo2 = np.array([7.4805e10, 1.2956e11])  # Luna
 posCuerpo3 = np.array([0, 0])                     # Sol
 
-
 #Velocidades iniciales aproximadas
 v_inicial1 = np.array([0, 29780])
 v_inicial2 = np.array([0, -30802])
@@ -117,7 +116,13 @@ v_inicial3 = np.array([0, 0])
 #Tiempo inicial, dt y tiempo maximo de iteracion
 t=0 #tiempo inicial
 dt=60 #segundos en un minuto
-t_max = 31536000 #segundos en un año
+t_max = (31536000*2) #segundos en un año
+
+#CALCULO DEL CENTRO DE MASA
+centro_de_masasX = (m1 * posCuerpo1[0] + m2 * posCuerpo2[0] + m3 * posCuerpo3[0]) / (m1 + m2 + m3)
+centro_de_masasY = (m1 * posCuerpo1[1] + m2 * posCuerpo2[1] + m3 * posCuerpo3[1]) / (m1 + m2 + m3)
+centroDeMasa = np.array([centro_de_masasX, centro_de_masasY])
+
 
 #inicializar trayectorias
 trayectoriaCuerpo1 = []
@@ -191,6 +196,12 @@ print(f"Energía Potencial - Cuerpo 3: {ePotGravitacional3[-1]:.2f}")
 print(f"Energía Total del Sistema: {eTotal[-1]:.2f}")
 print("Energia Acumulada: ", energiaAcumulativa(eTotal[0], eTotal[-1]))
 
+energia_acumulada_trapecio = trapecio(eTotal, dt)
+energia_acumulada_newton_cotes = newton_cotes(eTotal, dt)
+energia_acumulada_gauss = gauss_quadrature(eTotal, dt)
+print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
+print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
+print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")
 
 # Asegúrate de que las trayectorias son listas de numpy arrays
 trayectoriaCuerpo1 = np.array(trayectoriaCuerpo1)  # Suponiendo que ya tienes las trayectorias calculadas

@@ -8,6 +8,21 @@ def fuerzaGravitatoria(m1, m2, m3, pos1, pos2, pos3):
     f_Grav3 = -G*m3*((m1*(pos1-pos3)/(np.linalg.norm(pos1-pos3)**3))+(m2*(pos2-pos3)/(np.linalg.norm(pos2-pos3)**3)))
     return f_Grav1, f_Grav2, f_Grav3
 
+def aceleracionGravitatoria(m1, m2, m3, pos1, pos2, pos3):
+    G = 6.67e-11
+    masas = np.array([m1, m2, m3])
+    posiciones = np.array([pos1, pos2, pos3])
+    aceleraciones = np.zeros_like(posiciones)
+    cuerpos = 3
+    for i in range(cuerpos):
+        for j in range(cuerpos):
+            if j!=i:
+                r = posiciones[j]-posiciones[i]
+                dist = np.linalg.norm(r)
+                if dist>0:
+                    aceleraciones[i] += G*masas[j]*r/(dist**3)
+    return aceleraciones
+
 def derivar(estado, t, m1, m2, m3):
     """
     Calcula las derivadas del estado para el problema de los tres cuerpos.
@@ -21,13 +36,15 @@ def derivar(estado, t, m1, m2, m3):
     vel2 = np.array([estado[6], estado[7]])
     vel3 = np.array([estado[10], estado[11]])
     
-    f_grav1, f_grav2, f_grav3 = fuerzaGravitatoria(m1, m2, m3, pos1, pos2, pos3)
-    
+    aceleraciones = aceleracionGravitatoria(m1, m2, m3, pos1, pos2, pos3)
+    aceleracionCuerpo1 = aceleraciones[0]
+    aceleracionCuerpo2 = aceleraciones[1]
+    aceleracionCuerpo3 = aceleraciones[2]
     # Retorna las derivadas [dx1/dt, dy1/dt, dvx1/dt, dvy1/dt, dx2/dt, dy2/dt, dvx2/dt, dvy2/dt, dx3/dt, dy3/dt, dvx3/dt, dvy3/dt]
     return np.array([
-        vel1[0], vel1[1], f_grav1[0]/m1, f_grav1[1]/m1,
-        vel2[0], vel2[1], f_grav2[0]/m2, f_grav2[1]/m2,
-        vel3[0], vel3[1], f_grav3[0]/m3, f_grav3[1]/m3
+        vel1[0], vel1[1], aceleracionCuerpo1[0], aceleracionCuerpo1[1],
+        vel2[0], vel2[1], aceleracionCuerpo2[0], aceleracionCuerpo2[1],
+        vel3[0], vel3[1], aceleracionCuerpo3[0], aceleracionCuerpo3[1]
     ])
 
 def rkf45_paso(estado, t, h, m1, m2, m3):
@@ -59,7 +76,7 @@ def rkf45_paso(estado, t, h, m1, m2, m3):
     
     return new_estado
 
-def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_init, v3_init, t_final, dt):
+def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_init, v3_init, t_max, dt):
     # Estado inicial
     estado = np.concatenate([pos1_init, v1_init, pos2_init, v2_init, pos3_init, v3_init])
     
@@ -68,7 +85,7 @@ def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_i
     times = [t]
     estados = [estado]
     
-    while t < t_final:
+    while t < t_max:
         estado = rkf45_paso(estado, t, dt, m1, m2, m3)
         t += dt
         times.append(t)
@@ -78,29 +95,32 @@ def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_i
     return times, estados
 
 # Condiciones iniciales
-m1 = 1.98e30
-m2 = 5.97e24
-m3 = 7645.80
+m1 = 5.97e24
+m2 = 7645.80
+m3 = 1.98e30
 
-posCuerpo1 = np.array([0, 0])
-posCuerpo2 = np.array([5.0, 0])
-posCuerpo3 = np.array([2.5,4.33])
+#Posiciones iniciales aproximadas
+posCuerpo1 = np.array([1.4961e11, 0])   # Tierra
+posCuerpo2 = np.array([7.4805e10, 1.2956e11])  # Luna
+posCuerpo3 = np.array([0, 0])                     # Sol
 
+#Velocidades iniciales aproximadas
 v_inicial1 = np.array([0, 0])
 v_inicial2 = np.array([0, 0])
-v_inicial3 = np.array([0.0, 0.0])
+v_inicial3 = np.array([0, 0])
 
-# Simular
-t_final = 50
-dt = 0.1
+#Tiempo inicial, dt y tiempo maximo de iteracion
+t=0 #tiempo inicial
+dt=60 #segundos en un minuto
+t_max = (31536000*2) #segundos en un año
 tiempos, estados = simular_3_cuerpos(m1, m2, m3, posCuerpo1, posCuerpo2, posCuerpo3, 
-                                  v_inicial1, v_inicial2, v_inicial3, t_final, dt)
+                                  v_inicial1, v_inicial2, v_inicial3, t_max, dt)
 
 # Extraer las trayectorias
 trayectoriaCuerpo1 = estados[:, 0:2]
 trayectoriaCuerpo2 = estados[:, 4:6]
 trayectoriaCuerpo3 = estados[:, 8:10]
-
+"""
 from matplotlib.animation import FuncAnimation
 
 # Verifica las dimensiones de las trayectorias
@@ -143,15 +163,11 @@ anim = FuncAnimation(fig, actualizar, frames=frames, interval=100, blit=True)
 # Mostrar la animación
 plt.legend()
 plt.show()
-
-
-
-
-""" 
+"""
 # Graficar
 plt.figure(figsize=(10, 10))
-plt.xlim(-10, 10)
-plt.ylim(-10, 10)
+plt.xlim(-2e11, 2e11)  # Ajusta estos límites según tus necesidades
+plt.ylim(-2e11, 2e11)
 
 plt.plot(trayectoriaCuerpo1[:, 0], trayectoriaCuerpo1[:, 1], 'b-', label='Cuerpo 1')
 plt.plot(trayectoriaCuerpo2[:, 0], trayectoriaCuerpo2[:, 1], 'r-', label='Cuerpo 2')
@@ -168,4 +184,3 @@ plt.legend()
 plt.grid()
 plt.axis('equal')
 plt.show()
-"""
