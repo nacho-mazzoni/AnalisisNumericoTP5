@@ -228,11 +228,8 @@ plt.grid()
 plt.axis('equal')  # Para mantener la proporción de la gráfica
 plt.show()
 
-<<<<<<< HEAD
-=======
 print("Energia acumulativa del sistema: ",  sum(eTotal) * dt)
 
 print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
 print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
 print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")
->>>>>>> a1ef6c74af7c42e8b02f7389076141b7bf946ba0
