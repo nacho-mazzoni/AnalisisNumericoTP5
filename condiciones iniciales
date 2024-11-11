@@ -1,0 +1,67 @@
+#CONDICIONES INICIALES
+
+#SISTEMA TIERRA, LUNA, SOL REAL
+# Masas (en kg)
+m1 = 5.972e24   # Masa de la Tierra
+m2 = 7.348e22   # Masa de la Luna
+m3 = 1.989e30   # Masa del Sol
+
+# Posiciones iniciales (en metros)
+posCuerpo1 = np.array([1.496e11, 0])               # Posición inicial de la Tierra
+posCuerpo2 = np.array([1.496e11 + 3.844e8, 0])     # Posición inicial de la Luna
+posCuerpo3 = np.array([0, 0])                      # Posición inicial del Sol
+
+# Velocidades iniciales (en m/s)
+v_inicial1 = np.array([0, 29780])                  # Velocidad inicial de la Tierra
+v_inicial2 = np.array([0, 29780 + 1022])           # Velocidad inicial de la Luna
+v_inicial3 = np.array([0, 0])                      # Velocidad inicial del Sol (en reposo)
+
+
+#CON EL QUE EMPEZAMOS
+# Masas (en kg)
+m1 = 5.97e24
+m2 = 7.348e22
+m3 = 1.98e30  
+
+# Posiciones iniciales (en metros)
+posCuerpo1 = np.array([1.4961e11, 0])   # Tierra
+posCuerpo2 = np.array([1.4961e11*np.cos(np.pi/3), 1.4961e11*np.sin(np.pi/3)])  # Luna
+posCuerpo3 = np.array([0, 0])                     # Sol
+
+# Velocidades iniciales (en m/s)
+v_inicial1 = np.array([0, 29780])
+v_inicial2 = np.array([0, -30802])
+v_inicial3 = np.array([0, 0])
+
+
+#SISTEMA TIERRA, MARTE, SOL. EL QUE MAS ME GUSTA
+# Masas (en kg)
+m1 = 5.972e24   # Masa de la Tierra
+m2 = 6.4171e23  # Masa de Marte
+m3 = 1.989e30   # Masa del Sol
+
+# Posiciones iniciales (en metros)
+posCuerpo1 = np.array([1.496e11, 0])               # Posición inicial de la Tierra
+posCuerpo2 = np.array([2.279e11, 0])               # Posición inicial de Marte
+posCuerpo3 = np.array([0, 0])                      # Posición inicial del Sol (en el origen)
+
+# Velocidades iniciales (en m/s)
+v_inicial1 = np.array([0, 29780])                  # Velocidad inicial de la Tierra
+v_inicial2 = np.array([0, 24100])                  # Velocidad inicial de Marte
+v_inicial3 = np.array([0, 0])                      # Velocidad inicial del Sol (suponemos que está en reposo)
+
+#CAOTICO
+# Masas en kg
+m1 = 1.0e30  # Cuerpo 1 
+m2 = 1.0e28  # Cuerpo 2 
+m3 = 1.0e28  # Cuerpo 3
+
+# Posiciones iniciales en metros
+posCuerpo1 = np.array([-1.0e11, 0.0])
+posCuerpo2 = np.array([1.0e11, 1.0e11])
+posCuerpo3 = np.array([0.0, -1.5e11])
+
+# Velocidades iniciales en m/s
+v_inicial1 = np.array([0.0, 5000.0])
+v_inicial2 = np.array([-15000.0, 0.0])
+v_inicial3 = np.array([10000.0, 15000.0])
