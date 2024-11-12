@@ -33,8 +33,8 @@ def f_Velocidad(m1, m2, m3, vC1, vC2, vC3, h, pos1, pos2, pos3):
 #defino la funcion de posicion 
 """ al igual que con la velocidad, debo hacer la integral de la funcin de t a t+h
 en la funcion de velocidad"""
-def f_posicion(m1, m2, m3, posicionT1, posicionT2, posicionT3, h, velocidadT1, velocidadT2, velocidadT3, pos1, pos2, pos3):
-    v1, v2, v3 = f_Velocidad(m1, m2, m3, velocidadT1, velocidadT2, velocidadT3, h, pos1, pos2, pos3)
+def f_posicion(m1, m2, m3, posicionT1, posicionT2, posicionT3, h, velocidadT1, velocidadT2, velocidadT3):
+    v1, v2, v3 = f_Velocidad(m1, m2, m3, velocidadT1, velocidadT2, velocidadT3, h, posicionT1, posicionT2, posicionT3)
     pos1 = posicionT1 + v1*h 
     pos2 = posicionT2 + v2*h 
     pos3 = posicionT3 + v3*h 
@@ -100,27 +100,21 @@ def gauss_quadrature(integrand, dt):
 
     return integral
 
-# Masas en kg (Tierra, Luna, Sol)
-m1 = 5.97e24   # Tierra
-m2 = 7.348e22  # Luna
-m3 = 1.98e30   # Sol  
+#SISTEMA TIERRA, MARTE, SOL. EL QUE MAS ME GUSTA
+# Masas (en kg)
+m1 = 5.972e24   # Masa de la Tierra
+m2 = 6.4171e23  # Masa de Marte
+m3 = 1.989e30   # Masa del Sol
 
-# Posiciones iniciales en 3 dimensiones (incluyendo z = 0)
-posCuerpo1 = np.array([1, 0, 0])   # Tierra
-posCuerpo2 = np.array([1.00257, 0, 0])  # Luna
-posCuerpo3 = np.array([0, 0, 0])           # Sol
+# Posiciones iniciales (en metros)
+posCuerpo1 = np.array([1.496e11, 0, 0])               # Posición inicial de la Tierra
+posCuerpo2 = np.array([2.279e11, 0, 0])               # Posición inicial de Marte
+posCuerpo3 = np.array([0, 0, 0])                      # Posición inicial del Sol (en el origen)
 
-# Velocidades iniciales en 3 dimensiones (incluyendo z = 0)
-v_inicial1 = np.array([0, 30000, 0])  # Tierra
-v_inicial2 = np.array([34214, -30000, 432]) # Luna
-v_inicial3 = np.array([0, 0, 0])      # Sol
-
-#Tiempo inicial, dt y tiempo maximo de iteracion
-t=0 #tiempo inicial
-dt=600 #segundos en un minuto
-t_max = (31557600) #segundos en un año
-
-
+# Velocidades iniciales (en m/s)
+v_inicial1 = np.array([0, 29780, 0])                  # Velocidad inicial de la Tierra
+v_inicial2 = np.array([0, 24100, 0])                  # Velocidad inicial de Marte
+v_inicial3 = np.array([0, 0, 0])                      # Velocidad inicial del Sol (suponemos que está en reposo)
 
 # Inicializar variables para almacenar posiciones, velocidades y energías
 trayectoriaCuerpo1 = []
@@ -150,7 +144,7 @@ while t < t_max:
     v_inicial1, v_inicial2, v_inicial3 = f_Velocidad(m1, m2, m3, v_inicial1, v_inicial2, v_inicial3, dt, posCuerpo1, posCuerpo2, posCuerpo3)
     
     # Calcular la nueva posición con la velocidad calculada
-    posCuerpo1, posCuerpo2, posCuerpo3 = f_posicion(m1, m2, m3, posCuerpo1, posCuerpo2, posCuerpo3, dt, v_inicial1, v_inicial2, v_inicial3, posCuerpo1, posCuerpo2, posCuerpo3)
+    posCuerpo1, posCuerpo2, posCuerpo3 = f_posicion(m1, m2, m3, posCuerpo1, posCuerpo2, posCuerpo3, dt, v_inicial1, v_inicial2, v_inicial3)
     
     # Almacenar las posiciones y velocidades
     trayectoriaCuerpo1.append(posCuerpo1)
@@ -197,7 +191,7 @@ ax = fig.add_subplot(111, projection='3d')
 def update(frame):
     ax.cla()  # Limpiar el eje en cada frame
     
-    actual_frame = frame * 10  # Para que vaya más rápido
+    actual_frame = frame * 10000  # Para que vaya más rápido
     
     # Dibujar las trayectorias
     ax.plot(trayectoriaCuerpo1[:actual_frame, 0], trayectoriaCuerpo1[:actual_frame, 1], trayectoriaCuerpo1[:actual_frame, 2], 'b-', alpha=0.5, label='Cuerpo 1')
@@ -232,3 +226,17 @@ ani = animation.FuncAnimation(
 )
 
 plt.show()
+
+energia_acumulada_trapecio = trapecio(eTotal, dt)
+energia_acumulada_newton_cotes = newton_cotes(eTotal, dt)
+energia_acumulada_gauss = gauss_quadrature(eTotal, dt)
+
+energia_acumulada_trapecio = trapecio(eTotal, dt)
+energia_acumulada_newton_cotes = newton_cotes(eTotal, dt)
+energia_acumulada_gauss = gauss_quadrature(eTotal, dt)
+
+print("Energia acumulativa del sistema: ",  sum(eTotal) * dt)
+print("Energia Acumulada con la funcion: ", energiaAcumulativa(eTotal[0], eTotal[-1]))
+print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
+print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
+print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")

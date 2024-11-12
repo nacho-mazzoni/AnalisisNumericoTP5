@@ -76,6 +76,21 @@ def rkf45_paso(estado, t, h, m1, m2, m3):
     
     return new_estado
 
+def rk3_paso(estado, t, h, m1, m2, m3):
+    #coeficientes
+    k1 = h * derivar(estado, t, m1, m2, m3)
+    k2 = h * derivar(estado + h*0.5, t + k1*0.5, m1, m2, m3)
+    K_prima = h * derivar(estado + h, t + k1, m1, m2, m3)
+    k3 = h * derivar(estado + h, t + K_prima, m1, m2, m3)
+    
+    nuevo_estado = estado + (1/6)*(k1 + 4*k2 +k3)
+
+    return nuevo_estado
+
+def estimadorDeError(y3, y6, r):
+    error = (y3-y6/(2**r)-1)-2**r
+    return error
+
 #arrrglos con energias cineticas y potenciales para cada cuerpo
 eCineticaCuerpo1 = []
 eCineticaCuerpo2 = []
@@ -85,9 +100,12 @@ ePotGravitacional2 = []
 ePotGravitacional3 = []
 eTotal = []
 
+estimadorDelError = []
+
 def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_init, v3_init, t_max, dt):
     # Estado inicial
     estado = np.concatenate([pos1_init, v1_init, pos2_init, v2_init, pos3_init, v3_init])
+    estado3 = np.concatenate([pos1_init, v1_init, pos2_init, v2_init, pos3_init, v3_init])
     
     # Inicializar listas para almacenar las trayectorias
     t = 0
@@ -95,7 +113,9 @@ def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_i
     estados = [estado]
     
     while t < t_max:
+        estimadorDelError.append(estimadorDeError(estado3, estado, 6))
         estado = rkf45_paso(estado, t, dt, m1, m2, m3)
+        estado3 = rkf45_paso(estado3, t, dt*0.5, m1, m2, m3)
         t += dt
         times.append(t)
         estados.append(estado)
@@ -233,3 +253,4 @@ print("Energia acumulativa del sistema: ",  sum(eTotal) * dt)
 print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
 print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
 print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")
+print("Errores estimados: ", estimadorDelError)

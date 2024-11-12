@@ -31,8 +31,8 @@ def f_Velocidad(m1, m2, m3, vC1, vC2, vC3, h, pos1, pos2, pos3):
 #defino la funcion de posicion 
 """ al igual que con la velocidad, debo hacer la integral de la funcin de t a t+h
 en la funcion de velocidad"""
-def f_posicion(m1, m2, m3, posicionT1, posicionT2, posicionT3, h, velocidadT1, velocidadT2, velocidadT3, pos1, pos2, pos3):
-    v1, v2, v3 = f_Velocidad(m1, m2, m3, velocidadT1, velocidadT2, velocidadT3, h, pos1, pos2, pos3)
+def f_posicion(m1, m2, m3, posicionT1, posicionT2, posicionT3, h, velocidadT1, velocidadT2, velocidadT3):
+    v1, v2, v3 = f_Velocidad(m1, m2, m3, velocidadT1, velocidadT2, velocidadT3, h, posicionT1, posicionT2, posicionT3)
     pos1 = posicionT1 + v1*h 
     pos2 = posicionT2 + v2*h 
     pos3 = posicionT3 + v3*h 
@@ -98,6 +98,11 @@ def gauss_quadrature(integrand, dt):
 
     return integral
 
+def estimadorDeError(y3, y6, r):
+    error = (y3-y6/(2**r)-1)-2**r
+    return error
+
+
 #CONDICIONES INICIALES
 # masas en kg (Tierra, Luna, Sol)
 m1 = 5.97e24
@@ -117,7 +122,7 @@ v_inicial3 = np.array([0, 0])
 #Tiempo inicial, dt y tiempo maximo de iteracion
 t=0 #tiempo inicial
 dt=60 #segundos en un minuto
-t_max = (31536000*2) #segundos en un año
+t_max = (60000) #segundos en un año
 
 #CALCULO DEL CENTRO DE MASA
 centro_de_masasX = (m1 * posCuerpo1[0] + m2 * posCuerpo2[0] + m3 * posCuerpo3[0]) / (m1 + m2 + m3)
@@ -135,7 +140,7 @@ velocidades_cuerpo1 = []
 velocidades_cuerpo2 = []
 velocidades_cuerpo3 = []
 
-#arrglos con energias cineticas y potenciales para cada cuerpo
+#arreglos con energias cineticas y potenciales para cada cuerpo
 eCineticaCuerpo1 = []
 eCineticaCuerpo2 = []
 eCineticaCuerpo3 = []
@@ -143,16 +148,29 @@ ePotGravitacional1 = []
 ePotGravitacional2 = []
 ePotGravitacional3 = []
 eTotal = []
+estimadorDelError = []
 
+v_inicial13 = v_inicial1
+v_inicial23 = v_inicial2
+v_inicial33 = v_inicial3
+posCuerpo13 = posCuerpo1
+posCuerpo23 = posCuerpo2
+posCuerpo33 = posCuerpo3
 
 while t<t_max:
+    estado = np.concatenate([posCuerpo1, v_inicial1, posCuerpo2, v_inicial2, posCuerpo3, v_inicial3])
+    estado_prima = np.concatenate([posCuerpo13, v_inicial13, posCuerpo23, v_inicial23, posCuerpo33, v_inicial33])
+    estimadorDelError.append(estimadorDeError(estado_prima, estado, 1))
     #calculo de la velocidad en funcion de la fuerza grav
     v_cuerpo1, v_cuerpo2, v_cuerpo3 = f_Velocidad(m1, m2, m3, v_inicial1, v_inicial2, v_inicial3, dt, posCuerpo1, posCuerpo2, posCuerpo3)
 
     #calculo de la posicion en funcion de la velocidad
     posNueva_cuerpo1, posNueva_cuerpo2, posNueva_cuerpo3 = f_posicion(m1, m2, m3, posCuerpo1, posCuerpo2, posCuerpo3, dt,
-                                                              v_cuerpo1, v_cuerpo2, v_cuerpo3, posCuerpo1, posCuerpo2, posCuerpo3)
-     
+                                                              v_cuerpo1, v_cuerpo2, v_cuerpo3)
+
+    v_inicial13, v_inicial23, v_inicial33 = f_Velocidad(m1, m2, m3, v_inicial13, v_inicial23, v_inicial33, dt*0.5, posCuerpo13, posCuerpo23, posCuerpo33)
+
+    posCuerpo13, posCuerpo23, posCuerpo33 = f_posicion(m1, m2 , m3, posCuerpo13, posCuerpo23, posCuerpo33, dt*0.5, v_inicial13, v_inicial23, v_inicial33)    
     #actualizo las variables
     posCuerpo1 = posNueva_cuerpo1
     posCuerpo2 = posNueva_cuerpo2
@@ -195,9 +213,6 @@ energia_acumulada_gauss = gauss_quadrature(eTotal, dt)
 energia_acumulada_trapecio = trapecio(eTotal, dt)
 energia_acumulada_newton_cotes = newton_cotes(eTotal, dt)
 energia_acumulada_gauss = gauss_quadrature(eTotal, dt)
-print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
-print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
-print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")
 
 # Asegúrate de que las trayectorias son listas de numpy arrays
 trayectoriaCuerpo1 = np.array(trayectoriaCuerpo1)  # Suponiendo que ya tienes las trayectorias calculadas
@@ -233,3 +248,4 @@ print("Energia acumulativa del sistema: ",  sum(eTotal) * dt)
 print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
 print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
 print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")
+print("Errores estimados: ", estimadorDelError)
