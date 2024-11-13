@@ -3,20 +3,30 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import plotly.graph_objects as go
 
-#defino la funcion aceleracion Fgrav/mi
-def f_aceleracion(m1, m2, m3, pos1, pos2, pos3):
+#defino la fuerza gravitacional de cada cuerpo ejercida por los otros dos
+def f_gravitacional(m1, m2, m3, pos1, pos2, pos3):
     G = 6.67e-11
     posiciones = np.array([pos1, pos2, pos3])
     masas = np.array([m1, m2, m3])
-    aceleraciones = np.zeros_like(posiciones, dtype=np.float64)
-    cuerpos = 3
+    fuerzasGravitatorias = np.zeros_like(posiciones)
+    cuerpos=3
+    fuerzaLimite = np.array([10000000, 1000000]) #para los casos en que los cuerpos se choquen, sale disparado 
     for i in range(cuerpos):
         for j in range(cuerpos):
-            if j!=i:
-                r = posiciones[j]-posiciones[i]
-                dist = np.linalg.norm(r)
-                if dist>0:
-                    aceleraciones[i] += G*masas[j]*r/(dist**3)
+            if i != j:
+                dist = posiciones[j]-posiciones[i]
+                if(np.linalg.norm(dist)!=0):
+                    fuerzasGravitatorias[i] += (G) * masas[i] * (masas[j]*dist/(np.linalg.norm(dist)**3))
+                else:
+                    fuerzasGravitatorias[i] = fuerzaLimite 
+    return fuerzasGravitatorias
+
+#defino la funcion aceleracion Fgrav/mi
+def f_aceleracion(fuerzasGravitatorias, m1 ,m2, m3):
+    aceleraciones = np.zeros_like(fuerzasGravitatorias)
+    masas = np.array([m1, m2, m3])
+    for i in range(3):
+        aceleraciones[i] = (fuerzasGravitatorias[i]/masas[i])
     return aceleraciones
 
 #defino la funcion velocidad
@@ -24,7 +34,8 @@ def f_aceleracion(m1, m2, m3, pos1, pos2, pos3):
 lo unico que cambiara es la posicion en funcion del tiempo"""
 
 def f_Velocidad(m1, m2, m3, vC1, vC2, vC3, h, pos1, pos2, pos3):
-    aceleraciones = f_aceleracion(m1, m2, m3, pos1, pos2, pos3)
+    fuerzasGravitatorias = f_gravitacional(m1, m2, m3, pos1, pos2, pos3)
+    aceleraciones = f_aceleracion(fuerzasGravitatorias, m1, m2, m3)
     v_1 = vC1 + aceleraciones[0]*h
     v_2 = vC2 + aceleraciones[1]*h
     v_3 = vC3 + aceleraciones[2]*h
@@ -100,21 +111,25 @@ def gauss_quadrature(integrand, dt):
 
     return integral
 
-#SISTEMA TIERRA, MARTE, SOL. EL QUE MAS ME GUSTA
-# Masas (en kg)
-m1 = 5.972e24   # Masa de la Tierra
-m2 = 6.4171e23  # Masa de Marte
-m3 = 1.989e30   # Masa del Sol
+# Condiciones iniciales
+m1 = 5.97e24
+m2 = 7645.80
+m3 = 1.98e30
 
-# Posiciones iniciales (en metros)
-posCuerpo1 = np.array([1.496e11, 0, 0])               # Posición inicial de la Tierra
-posCuerpo2 = np.array([2.279e11, 0, 0])               # Posición inicial de Marte
-posCuerpo3 = np.array([0, 0, 0])                      # Posición inicial del Sol (en el origen)
+#Posiciones iniciales aproximadas
+posCuerpo1 = np.array([1.4961e11, 0, 0])   # Tierra
+posCuerpo2 = np.array([7.4805e10, 1.2956e11, 0])  # Luna
+posCuerpo3 = np.array([0, 0, 0])                     # Sol
 
-# Velocidades iniciales (en m/s)
-v_inicial1 = np.array([0, 29780, 0])                  # Velocidad inicial de la Tierra
-v_inicial2 = np.array([0, 24100, 0])                  # Velocidad inicial de Marte
-v_inicial3 = np.array([0, 0, 0])                      # Velocidad inicial del Sol (suponemos que está en reposo)
+#Velocidades iniciales aproximadas
+v_inicial1 = np.array([0, 29780, 0])
+v_inicial2 = np.array([0, -30802, 0])
+v_inicial3 = np.array([0, 0, 0])
+
+#Tiempo inicial, dt y tiempo maximo de iteracion
+t=0 #tiempo inicial
+dt=60 #segundos en un minuto
+t_max = (63072000) #segundos en un año
 
 # Inicializar variables para almacenar posiciones, velocidades y energías
 trayectoriaCuerpo1 = []
@@ -137,9 +152,6 @@ eTotal = []
 
 # Bucle principal para la simulación
 while t < t_max:
-    # Calcular la aceleración (fuerza gravitatoria)
-    aceleraciones = f_aceleracion(m1, m2, m3, posCuerpo1, posCuerpo2, posCuerpo3)
-    
     # Calcular la nueva velocidad con la aceleración calculada
     v_inicial1, v_inicial2, v_inicial3 = f_Velocidad(m1, m2, m3, v_inicial1, v_inicial2, v_inicial3, dt, posCuerpo1, posCuerpo2, posCuerpo3)
     

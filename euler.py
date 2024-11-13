@@ -1,20 +1,30 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-#defino la funcion aceleracion Fgrav/mi
-def f_aceleracion(m1, m2, m3, pos1, pos2, pos3):
+#defino la fuerza gravitacional de cada cuerpo ejercida por los otros dos
+def f_gravitacional(m1, m2, m3, pos1, pos2, pos3):
     G = 6.67e-11
     posiciones = np.array([pos1, pos2, pos3])
     masas = np.array([m1, m2, m3])
-    aceleraciones = np.zeros_like(posiciones, dtype=np.float64)
-    cuerpos = 3
+    fuerzasGravitatorias = np.zeros_like(posiciones)
+    cuerpos=3
+    fuerzaLimite = np.array([10000000, 1000000]) #para los casos en que los cuerpos se choquen, sale disparado 
     for i in range(cuerpos):
         for j in range(cuerpos):
-            if j!=i:
-                r = posiciones[j]-posiciones[i]
-                dist = np.linalg.norm(r)
-                if dist>0:
-                    aceleraciones[i] += G*masas[j]*r/(dist**3)
+            if i != j:
+                dist = posiciones[j]-posiciones[i]
+                if(np.linalg.norm(dist)!=0):
+                    fuerzasGravitatorias[i] += (G) * masas[i] * (masas[j]*dist/(np.linalg.norm(dist)**3))
+                else:
+                    fuerzasGravitatorias[i] = fuerzaLimite 
+    return fuerzasGravitatorias
+
+#defino la funcion aceleracion Fgrav/mi
+def f_aceleracion(fuerzasGravitatorias, m1 ,m2, m3):
+    aceleraciones = np.zeros_like(fuerzasGravitatorias)
+    masas = np.array([m1, m2, m3])
+    for i in range(3):
+        aceleraciones[i] = (fuerzasGravitatorias[i]/masas[i])
     return aceleraciones
 
 #defino la funcion velocidad
@@ -22,10 +32,11 @@ def f_aceleracion(m1, m2, m3, pos1, pos2, pos3):
 lo unico que cambiara es la posicion en funcion del tiempo"""
 
 def f_Velocidad(m1, m2, m3, vC1, vC2, vC3, h, pos1, pos2, pos3):
-    aceleraciones = f_aceleracion(m1, m2, m3, pos1, pos2, pos3)
-    v_1 = vC1 + aceleraciones[0]*h
-    v_2 = vC2 + aceleraciones[1]*h
-    v_3 = vC3 + aceleraciones[2]*h
+    fuerzasGravitatorias = f_gravitacional(m1, m2, m3, pos1, pos2, pos3)
+    aceleraciones = f_aceleracion(fuerzasGravitatorias, m1, m2, m3)
+    v_1 = vC1 + aceleraciones[0] * h
+    v_2 = vC2 + aceleraciones[1] * h
+    v_3 = vC3 + aceleraciones[2] * h
     return v_1, v_2, v_3
 
 #defino la funcion de posicion 
@@ -98,20 +109,18 @@ def gauss_quadrature(integrand, dt):
 
     return integral
 
-def estimadorDeError(y3, y6, r):
-    error = (y3-y6/(2**r)-1)-2**r
-    return error
+def estimadorDeError(y3, y6):
+    return y3-y6
 
 
-#CONDICIONES INICIALES
-# masas en kg (Tierra, Luna, Sol)
+# Condiciones iniciales
 m1 = 5.97e24
-m2 = 7.348e22
-m3 = 1.98e30  
+m2 = 7645.80
+m3 = 1.98e30
 
 #Posiciones iniciales aproximadas
 posCuerpo1 = np.array([1.4961e11, 0])   # Tierra
-posCuerpo2 = np.array([1.4961e11*np.cos(np.pi/3), 1.4961e11*np.sin(np.pi/3)])  # Luna
+posCuerpo2 = np.array([7.4805e10, 1.2956e11])  # Luna
 posCuerpo3 = np.array([0, 0])                     # Sol
 
 #Velocidades iniciales aproximadas
@@ -121,14 +130,9 @@ v_inicial3 = np.array([0, 0])
 
 #Tiempo inicial, dt y tiempo maximo de iteracion
 t=0 #tiempo inicial
-dt=60 #segundos en un minuto
-t_max = (60000) #segundos en un año
-
-#CALCULO DEL CENTRO DE MASA
-centro_de_masasX = (m1 * posCuerpo1[0] + m2 * posCuerpo2[0] + m3 * posCuerpo3[0]) / (m1 + m2 + m3)
-centro_de_masasY = (m1 * posCuerpo1[1] + m2 * posCuerpo2[1] + m3 * posCuerpo3[1]) / (m1 + m2 + m3)
-centroDeMasa = np.array([centro_de_masasX, centro_de_masasY])
-
+dt=30 #segundos en un minuto
+t_max = (63072000) #segundos en un año
+#salto = 0.1 #salto
 
 #inicializar trayectorias
 trayectoriaCuerpo1 = []
@@ -157,10 +161,13 @@ posCuerpo13 = posCuerpo1
 posCuerpo23 = posCuerpo2
 posCuerpo33 = posCuerpo3
 
+tiempos = []
+
+#CAMBIOS PARA QUE SEA ADAPTATIVO
 while t<t_max:
-    estado = np.concatenate([posCuerpo1, v_inicial1, posCuerpo2, v_inicial2, posCuerpo3, v_inicial3])
-    estado_prima = np.concatenate([posCuerpo13, v_inicial13, posCuerpo23, v_inicial23, posCuerpo33, v_inicial33])
-    estimadorDelError.append(estimadorDeError(estado_prima, estado, 1))
+    #estado = np.concatenate([posCuerpo1, posCuerpo2, posCuerpo3])
+    #estado_prima = np.concatenate([posCuerpo13, posCuerpo23, posCuerpo33])
+    #estimadorDelError.append(estimadorDeError(estado_prima, estado))
     #calculo de la velocidad en funcion de la fuerza grav
     v_cuerpo1, v_cuerpo2, v_cuerpo3 = f_Velocidad(m1, m2, m3, v_inicial1, v_inicial2, v_inicial3, dt, posCuerpo1, posCuerpo2, posCuerpo3)
 
@@ -168,9 +175,9 @@ while t<t_max:
     posNueva_cuerpo1, posNueva_cuerpo2, posNueva_cuerpo3 = f_posicion(m1, m2, m3, posCuerpo1, posCuerpo2, posCuerpo3, dt,
                                                               v_cuerpo1, v_cuerpo2, v_cuerpo3)
 
-    v_inicial13, v_inicial23, v_inicial33 = f_Velocidad(m1, m2, m3, v_inicial13, v_inicial23, v_inicial33, dt*0.5, posCuerpo13, posCuerpo23, posCuerpo33)
+    #v_inicial13, v_inicial23, v_inicial33 = f_Velocidad(m1, m2, m3, v_inicial13, v_inicial23, v_inicial33, dt*0.5, posCuerpo13, posCuerpo23, posCuerpo33)
 
-    posCuerpo13, posCuerpo23, posCuerpo33 = f_posicion(m1, m2 , m3, posCuerpo13, posCuerpo23, posCuerpo33, dt*0.5, v_inicial13, v_inicial23, v_inicial33)    
+    #posCuerpo13, posCuerpo23, posCuerpo33 = f_posicion(m1, m2 , m3, posCuerpo13, posCuerpo23, posCuerpo33, dt*0.5, v_inicial13, v_inicial23, v_inicial33)    
     #actualizo las variables
     posCuerpo1 = posNueva_cuerpo1
     posCuerpo2 = posNueva_cuerpo2
@@ -203,6 +210,11 @@ while t<t_max:
     e_potGravTotal = e_potencial1+e_potencial2+e_potencial3
 
     eTotal.append((e_cineticaTotal+e_potGravTotal))
+    #if (np.abs(np.linalg.norm(estimadorDelError[t])) > 10e-5):
+        #salto = salto*((10e-5/np.linalg.norm(estimadorDelError[t]))**0.5)
+    #else:
+        #salto *= 1.5
+    tiempos.append(t)
     t += dt
     
 
@@ -218,11 +230,11 @@ energia_acumulada_gauss = gauss_quadrature(eTotal, dt)
 trayectoriaCuerpo1 = np.array(trayectoriaCuerpo1)  # Suponiendo que ya tienes las trayectorias calculadas
 trayectoriaCuerpo2 = np.array(trayectoriaCuerpo2)
 trayectoriaCuerpo3 = np.array(trayectoriaCuerpo3)
-
+"""
 # Configuración de la gráfica
 plt.figure(figsize=(10, 10))
-plt.xlim(-10, 10)  # Ajusta estos límites según tus necesidades
-plt.ylim(-10, 10)
+plt.xlim(-10e10, 10e10)  # Ajusta estos límites según tus necesidades
+plt.ylim(-10e10, 10e10)
 
 # Graficar trayectorias
 plt.plot(trayectoriaCuerpo1[:, 0], trayectoriaCuerpo1[:, 1], 'b-', label='Cuerpo 1')
@@ -242,10 +254,27 @@ plt.legend()
 plt.grid()
 plt.axis('equal')  # Para mantener la proporción de la gráfica
 plt.show()
+"""
 
 print("Energia acumulativa del sistema: ",  sum(eTotal) * dt)
-
+print("Energia Acumulada con la funcion: ", energiaAcumulativa(eTotal[0], eTotal[-1]))
 print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
 print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
 print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")
-print("Errores estimados: ", estimadorDelError)
+#print("Errores estimados: ", estimadorDelError)
+
+# Crear la figura y el gráfico
+plt.figure(figsize=(10, 6))
+plt.xlim(min(tiempos), max(tiempos))
+plt.ylim(min(eTotal), max(eTotal))
+# Graficar cada array en función del tiempo con colores distintos y una etiqueta para la leyenda
+plt.plot(tiempos, eTotal, color='blue', label='Energia total por pasos')
+# Agregar título y etiquetas
+plt.title("Datos de la energía en función del tiempo")
+plt.xlabel("Tiempo")
+plt.ylabel("Energia")
+# Mostrar la leyenda para diferenciar cada cuerpo
+plt.legend()
+# Mostrar la cuadrícula
+plt.grid(True)
+plt.show()

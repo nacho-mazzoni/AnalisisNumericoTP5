@@ -1,26 +1,30 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def fuerzaGravitatoria(m1, m2, m3, pos1, pos2, pos3):
+#defino la fuerza gravitacional de cada cuerpo ejercida por los otros dos
+def f_gravitacional(m1, m2, m3, pos1, pos2, pos3):
     G = 6.67e-11
-    f_Grav1 = -G*m1*((m2*(pos2-pos1)/(np.linalg.norm(pos2-pos1)**3))+(m3*(pos3-pos1)/(np.linalg.norm(pos3-pos1)**3)))
-    f_Grav2 = -G*m2*((m1*(pos1-pos2)/(np.linalg.norm(pos1-pos2)**3))+(m3*(pos3-pos2)/(np.linalg.norm(pos3-pos2)**3)))
-    f_Grav3 = -G*m3*((m1*(pos1-pos3)/(np.linalg.norm(pos1-pos3)**3))+(m2*(pos2-pos3)/(np.linalg.norm(pos2-pos3)**3)))
-    return f_Grav1, f_Grav2, f_Grav3
-
-def aceleracionGravitatoria(m1, m2, m3, pos1, pos2, pos3):
-    G = 6.67e-11
-    masas = np.array([m1, m2, m3])
     posiciones = np.array([pos1, pos2, pos3])
-    aceleraciones = np.zeros_like(posiciones)
-    cuerpos = 3
+    masas = np.array([m1, m2, m3])
+    fuerzasGravitatorias = np.zeros_like(posiciones)
+    cuerpos=3
+    fuerzaLimite = np.array([10000000, 1000000]) #para los casos en que los cuerpos se choquen, sale disparado 
     for i in range(cuerpos):
         for j in range(cuerpos):
-            if j!=i:
-                r = posiciones[j]-posiciones[i]
-                dist = np.linalg.norm(r)
-                if dist>0:
-                    aceleraciones[i] += G*masas[j]*r/(dist**3)
+            if i != j:
+                dist = posiciones[j]-posiciones[i]
+                if(np.linalg.norm(dist)!=0):
+                    fuerzasGravitatorias[i] += (G) * masas[i] * (masas[j]*dist/(np.linalg.norm(dist)**3))
+                else:
+                    fuerzasGravitatorias[i] = fuerzaLimite 
+    return fuerzasGravitatorias
+
+#defino la funcion aceleracion Fgrav/mi
+def f_aceleracion(fuerzasGravitatorias, m1 ,m2, m3):
+    aceleraciones = np.zeros_like(fuerzasGravitatorias)
+    masas = np.array([m1, m2, m3])
+    for i in range(3):
+        aceleraciones[i] = (fuerzasGravitatorias[i]/masas[i])
     return aceleraciones
 
 def derivar(estado, t, m1, m2, m3):
@@ -36,7 +40,8 @@ def derivar(estado, t, m1, m2, m3):
     vel2 = np.array([estado[6], estado[7]])
     vel3 = np.array([estado[10], estado[11]])
     
-    aceleraciones = aceleracionGravitatoria(m1, m2, m3, pos1, pos2, pos3)
+    fuerzasGravitatorias = f_gravitacional(m1, m2, m3, pos1, pos2, pos3)
+    aceleraciones = f_aceleracion(fuerzasGravitatorias, m1, m2, m3)
     aceleracionCuerpo1 = aceleraciones[0]
     aceleracionCuerpo2 = aceleraciones[1]
     aceleracionCuerpo3 = aceleraciones[2]
@@ -76,17 +81,6 @@ def rkf45_paso(estado, t, h, m1, m2, m3):
     
     return new_estado
 
-def rk3_paso(estado, t, h, m1, m2, m3):
-    #coeficientes
-    k1 = h * derivar(estado, t, m1, m2, m3)
-    k2 = h * derivar(estado + h*0.5, t + k1*0.5, m1, m2, m3)
-    K_prima = h * derivar(estado + h, t + k1, m1, m2, m3)
-    k3 = h * derivar(estado + h, t + K_prima, m1, m2, m3)
-    
-    nuevo_estado = estado + (1/6)*(k1 + 4*k2 +k3)
-
-    return nuevo_estado
-
 def estimadorDeError(y3, y6, r):
     error = (y3-y6/(2**r)-1)-2**r
     return error
@@ -105,7 +99,7 @@ estimadorDelError = []
 def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_init, v3_init, t_max, dt):
     # Estado inicial
     estado = np.concatenate([pos1_init, v1_init, pos2_init, v2_init, pos3_init, v3_init])
-    estado3 = np.concatenate([pos1_init, v1_init, pos2_init, v2_init, pos3_init, v3_init])
+    #estado3 = np.concatenate([pos1_init, v1_init, pos2_init, v2_init, pos3_init, v3_init])
     
     # Inicializar listas para almacenar las trayectorias
     t = 0
@@ -113,9 +107,9 @@ def simular_3_cuerpos(m1, m2, m3, pos1_init, pos2_init, pos3_init, v1_init, v2_i
     estados = [estado]
     
     while t < t_max:
-        estimadorDelError.append(estimadorDeError(estado3, estado, 6))
+        #estimadorDelError.append(estimadorDeError(estado3, estado, 6))
         estado = rkf45_paso(estado, t, dt, m1, m2, m3)
-        estado3 = rkf45_paso(estado3, t, dt*0.5, m1, m2, m3)
+        #estado3 = rkf45_paso(estado3, t, dt*0.5, m1, m2, m3)
         t += dt
         times.append(t)
         estados.append(estado)
@@ -210,7 +204,7 @@ v_inicial3 = np.array([0, 0])
 #Tiempo inicial, dt y tiempo maximo de iteracion
 t=0 #tiempo inicial
 dt=60 #segundos en un minuto
-t_max = (31536000*2) #segundos en un año
+t_max = (63072000) #segundos en un año
 tiempos, estados = simular_3_cuerpos(m1, m2, m3, posCuerpo1, posCuerpo2, posCuerpo3, 
                                   v_inicial1, v_inicial2, v_inicial3, t_max, dt)
 
@@ -253,4 +247,4 @@ print("Energia acumulativa del sistema: ",  sum(eTotal) * dt)
 print(f"Energía acumulada (Trapecio): {energia_acumulada_trapecio:.2f}")
 print(f"Energía acumulada (Newton-Cotes): {energia_acumulada_newton_cotes:.2f}")
 print(f"Energía acumulada (Cuadratura de Gauss): {energia_acumulada_gauss:.2f}")
-print("Errores estimados: ", estimadorDelError)
+#print("Errores estimados: ", estimadorDelError)
